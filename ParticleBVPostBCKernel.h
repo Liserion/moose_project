@@ -29,6 +29,9 @@ protected:
 
 
      const PostprocessorName &_pps_phi1,&_pps_c2,&_pps_phi2;
+     const Real &_c2_value;
+     const Real &_phi1_value;
+     const Real &_phi2_value;
 
      const Real &_K2,&_Cm;
      const Real &_T;
