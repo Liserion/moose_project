@@ -11,13 +11,11 @@ registerMooseObject("BabblerApp", ParticleBVPostBCKernel);
 template <>
 InputParameters validParams<ParticleBVPostBCKernel>()
 {
-    InputParameters params=IntegratedBC::validParams();
-
+    InputParameters params=IntegratedBCBase::validParams();
 
     params.addRequiredParam<PostprocessorName>("pps_c2", "name of pps for c2");
-    params.addRequiredParam<PostprocessorName>("pps_phi1","name of pps for phi1");
-    params.addRequiredParam<PostprocessorName>("pps_phi2","name of pps for phi2");
-
+    params.addRequiredParam<PostprocessorName>("pps_phi1", "name of pps for phi1");
+    params.addRequiredParam<PostprocessorName>("pps_phi2", "name of pps for phi2");
 
     params.addRequiredParam<Real>("Cm","The maximum concentration of electrolyte phase");
     params.addRequiredParam<Real>("K2","The reaction rate for Bulter-Volmer reaction");
@@ -36,16 +34,18 @@ InputParameters validParams<ParticleBVPostBCKernel>()
 
 ParticleBVPostBCKernel::ParticleBVPostBCKernel(const InputParameters &parameters)
 :IntegratedBC(parameters),
+_c2_value(getPostprocessorValue("pps_c2")),
+_phi1_value(getPostprocessorValue("pps_phi1")),
+_phi2_value(getPostprocessorValue("pps_phi2")),
 _Cm(getParam<Real>("Cm")),
 _K2(getParam<Real>("K2")),
 _MateChoice(getParam<int>("MateChoice")),
 _T(getParam<Real>("T")),
-_pps_phi1(getParam<PostprocessorName>("pps_phi1")),
 _pps_c2(getParam<PostprocessorName>("pps_c2")),
+_pps_phi1(getParam<PostprocessorName>("pps_phi1")),
 _pps_phi2(getParam<PostprocessorName>("pps_phi2"))
-{std::cout << "Is pps_phi1 set? " << parameters.isParamSetByUser("pps_phi1") << std::endl;
-std::cout << "Is pps_c2 set? " << parameters.isParamSetByUser("pps_c2") << std::endl;
-std::cout << "Is pps_phi2 set? " << parameters.isParamSetByUser("pps_phi2") << std::endl;}
+
+{}
 
 void ParticleBVPostBCKernel::OpenCircuitV(const Real &x, Real &u, Real &dudx)
 {
@@ -140,30 +140,22 @@ void ParticleBVPostBCKernel::BV(const Real &c, const Real &phi1, const Real &phi
 //*************************
 Real ParticleBVPostBCKernel::computeQpResidual()
 {
-    Real c2 = getPostprocessorValueByName(_pps_c2);
-    Real phi1 = getPostprocessorValueByName(_pps_phi1);
-    Real phi2 = getPostprocessorValueByName(_pps_phi2);
+    Real c2 = _c2_value;
+    Real phi1 = _phi1_value;
+    Real phi2 = _phi2_value;
 
-    // Debug statements
-    std::cout << "Value of c2_from_macro: " << c2 << std::endl;
-    std::cout << "Value of pps_phi1: " << phi1 << std::endl;
-    std::cout << "Value of pps_phi2: " << phi2 << std::endl;
-//     Real c2=getPostprocessorValueByName(_pps_c2);
-//     Real phi1=getPostprocessorValueByName(_pps_phi1);
-//     Real phi2=getPostprocessorValueByName(_pps_phi2);
-//
-//     BV(c2,phi1,phi2,_u[_qp],J,dJdc);
+    BV(c2,phi1,phi2,_u[_qp],J,dJdc);
 
-    return 0.0;
+    return J*_test[_i][_qp];
 }
 
 Real ParticleBVPostBCKernel::computeQpJacobian()
 {
-//     Real c2=getPostprocessorValueByName(_pps_c2);
-//     Real phi1=getPostprocessorValueByName(_pps_phi1);
-//     Real phi2=getPostprocessorValueByName(_pps_phi2);
-//
-//     BV(c2,phi1,phi2,_u[_qp],J,dJdc);
+    Real c2 = _c2_value;
+    Real phi1 = _phi1_value;
+    Real phi2 = _phi2_value;
 
-    return 0.0;
+    BV(c2,phi1,phi2,_u[_qp],J,dJdc);
+
+    return dJdc*_phi[_j][_qp]*_test[_i][_qp];
 }
